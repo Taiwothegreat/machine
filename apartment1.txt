@@ -1,0 +1,6 @@
+﻿<!DOCTYPE html>
+<html>
+<div>
+<img src="apartment1.png">
+</div>
+</html>

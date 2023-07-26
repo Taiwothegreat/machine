@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>TBOLT STORES</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="index.html">
+<style>
+.mySlides {display:none;
+margin:0px;
+padding:0px;
+}
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333;
+border:2px solid red;
+border-right:none;
+border-left:none;
+}
+*	{
+box-sizing:border-box;
+}
+li {
+  float: left;
+}
+.active{
+background-color:blue;
+}
+li a, .dropbtn {
+  display: inline-block;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+li a:hover, .dropdown:hover .dropbtn {
+  background-color: red;
+}
+
+li.dropdown {
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 100px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  text-align: left;
+}
+
+.dropdown-content a:hover {background-color: red;}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+  body {
+    background-image:url("Penguins.png");
+  }
+.footer {
+  text-align: center;
+  padding: 10px;
+color:red;
+}
+h2.heading{
+text-align:center;
+color:blue;
+}
+.center{
+display:block;
+margin-right:auto;
+margin-left:auto;
+}
+img{
+display:block;
+margin-right:auto;
+margin-left:auto;
+width:80%;
+border:2px solid red;
+</style>
+</head>
+<head>
+<h1 align="center"> <font face="Badley Hand (TC)" size="10" color="red"><i>This Is Tbolts Website</i></font></h1>
+</head>
+<ul>
+  <li><a class="active" href="index.html">Home</a></li>
+  <li><a href="aboutus.html">About Us</a></li>
+  <li class="dropdown">
+    <a href="javascript:void(0)" class="dropbtn">Dropdown</a>
+    <div class="dropdown-content">
+      <a href="blog.html">Blog</a>
+      <a href="football.htm">Football</a>
+      <a href="contactus.html">Contact us</a>
+    </div>
+  </li>
+</ul>
+<body>
+<h2 class="heading">YOU ARE WELCOME TO TBOLTS STORES</h2>
+<div class="w3-container">
+</div>
+<div class="w3-content w3-section" style="max-width:500px" >
+ <img class="mySlides w3-animate-top" src="tricycle.png" class="center">
+  <img class="mySlides w3-animate-bottom" src="tricycle7.png" class="center">
+ <img class="mySlides w3-animate-bottom" src="tricycle5.png" class="center">
+<img class="mySlides w3-animate-bottom" src="tricycle6.png" class="center">
+</div>
+<script>
+var myIndex = 0;
+carousel();
+
+function carousel() {
+  var i;
+  var x = document.getElementsByClassName("mySlides");
+  for (i = 0; i < x.length; i++) {
+    x[i].style.display = "none";  
+  }
+  myIndex++;
+  if (myIndex > x.length) {myIndex = 1}    
+  x[myIndex-1].style.display = "block";  
+  setTimeout(carousel, 2500);    
+}
+</script>
+</body>
+<div class="footer"> Copyright(c) 2019</div>
+</html>

@@ -1,0 +1,11 @@
+﻿<?php
+<form action="site.php" method="POST">
+<p>name</p><input type="text" name="name"> 
+<p>email</p><input type="text" name="email">
+<input type="submit" name="submit">
+</form>
+$name=$_POST["name"];
+$email=$_POST["email"];
+$submit=$_POST["submit"];
+echo $_POST["submit"];
+?>

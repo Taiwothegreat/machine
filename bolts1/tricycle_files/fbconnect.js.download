@@ -1,0 +1,227 @@
+(function(){
+	var Dom = YAHOO.util.Dom;
+	var FBConnect = function() {
+		this.initEvent = new YAHOO.util.CustomEvent('init',this, false, YAHOO.util.CustomEvent.FLAT, true);
+		//this.loginStatusEvent = new YAHOO.util.CustomEvent('login-status',this, false, YAHOO.util.CustomEvent.FLAT);
+		this.loggedOutEvent = new YAHOO.util.CustomEvent('logged-out',this, false, YAHOO.util.CustomEvent.FLAT);
+		this.loggedInEvent = new YAHOO.util.CustomEvent('logged-in',this, false, YAHOO.util.CustomEvent.FLAT);
+	}
+	FBConnect.prototype = {
+		API_KEY: '960ca433fb0a6537f9582c139c4f715f',
+		APPID: '321580635153',
+		PLUGIN_PATH: '/',
+		init:function() {
+      var curLoc = window.location, chanUrl=curLoc.protocol + "//" + curLoc.hostname + '/fb_channel.html';
+			FB.init({appId:DJFB.APPID, status:true, cookie:true, xfbml:true, oauth:true, channelUrl:chanUrl});
+			/*
+			FB.Event.subscribe('auth.statusChanged', function(response) {
+				djp.console('status changed', response);
+			});
+			FB.Event.subscribe('auth.sessionChanged', function(response) {
+				djp.console('session changed', response);
+			});
+			*/
+			FB.Event.subscribe('auth.logout', function(state) {
+				djp.console('auth.logout event', state);
+				DJFB.loggedOutEvent.fire();
+				//djp.gotourl('reload');
+			});
+			FB.Event.subscribe('auth.login', function(state) {
+				djp.console('auth.login');
+				var cur_state = DJFB.st(),
+					no_change = (
+						(!cur_state && !state)
+						|| (state && cur_state && state.authResponse && cur_state.authResponse && state.authResponse.access_token==cur_state.authResponse.access_token)
+					);
+				djp.console('auth.login, no_change: '+no_change);
+				djp.console('auth.login event', state, 'ccurent state:', cur_state, 'change:', no_change?'no':'yes' );
+				if (!no_change) {
+					DJFB.st(state);
+					DJFB.loggedInEvent.fire();
+				}
+			});
+			/*
+			FB.Event.subscribe('edge.create', function(response) {
+				var vt_btns = Dom.getElementsByClassName('votetxt', 'a', document.body);
+				if (vt_btns.length)
+					vt_btns[0].onclick();
+			});
+			*/
+			DJFB.loggedInEvent.subscribe(function(){
+				djp.console('logged into fb, dj user:',djp.user.is_loggedin());
+				DJFB.login_dj_user(true);
+			});
+
+			DJFB.load_session();
+			djp.console('DJFB initialized');
+		},
+		connect: function() {
+			DJFB.initEvent.subscribe(function(){
+				if (DJFB.authResp())
+					djp.editobj('user', 'facebook', 0, {vals:{fb:DJFB.uid(),access_token:DJFB.authResp().access_token},onAfterSave:function(){ alert('Your Facebook account has been connected with Digital Journal');djp.gotourl('reload'); }});
+			});
+		},
+		toggle_fb_login_button: function(state){
+			var cls = 'invis', def = typeof(state) != 'undefined', yes = def && state, no = def && !state,
+				//logic=function(node){ return ((!Dom.hasClass(node,cls) && !no)||no); };
+				logic=function(){ return (!yes || no); };
+			djp.console('toggle_fb_login_button', logic() ? 'hide' : 'show');
+			Dom.getElementsByClassName('hide_fb').each(function(){ var cls='invis';if(logic()) Dom.addClass(this,cls);else Dom.removeClass(this,cls); });
+		},
+		login_dj_user: function(sync, user_triggered){
+			djp.console('login dj user with fb, synchronous:', sync);
+			if (!djp.user.is_loggedin() && DJFB.authResp(sync)) {
+				djp.console('login dj user with fb', DJFB.uid());
+				djp.editobj('user', 'login', '', {
+					vals:{
+						fblogin:1,
+						user:DJFB.uid(),
+						session_key:DJFB.authResp().accessToken
+					},
+					silent:1,
+					output_mode:'xml',
+					onAfterFail:function(o){
+            if (user_triggered)
+              djp.error("You need to connect your Digital Journal account before using this feature");
+						DJFB.toggle_fb_login_button(true);
+					},
+					onAfterSave:function(){
+						if (djp._loading_text_el)
+							djp._loading_text_el.innerHTML=djp.loading_text('Logged In. Redirecting...');
+						djp.gotourl('reload');
+					}
+				});
+			}
+			else {
+				if (djp._loading_text_el)
+					djp._loading_text_el.innerHTML='';
+				if (!DJFB.authResp()) {
+					DJFB.toggle_fb_login_button(true);
+				}
+        FB.login(function(){ DJFB.login_dj_user(true, user_triggered); });
+				djp.console('not trying to auto-login, ', 'authResp:', DJFB.authResp(), 'logged in:', djp.user.is_loggedin());
+			}
+		},
+
+		st: function() {
+			if (arguments.length) {
+				if (typeof(DJFB._state)=='undefined')
+					DJFB._initial_state = arguments[0];
+				DJFB._state = arguments[0];
+				djp.console('fb state', DJFB._state);
+				//DJFB.loginStatusEvent.fire(DJFB.st());
+			}
+			else
+				return DJFB._state;
+		},
+
+		load_session: function() {
+			djp.console('requesting fb login status');
+			FB.getLoginStatus(function(state) {
+				DJFB._tried_getting_state = true;
+				djp.console('loaded fb login status', state);
+				DJFB.st(state);
+				DJFB.initEvent.fire();
+			});
+		},
+		uid: function() {
+			var resp = DJFB.authResp();
+			return resp ? resp.userID : 0;
+		},
+		authResp: function(check_if_false) {
+			var state=DJFB.st();
+			djp.console('get fb auth response', check_if_false, DJFB._tried_getting_state, 'state:', state);
+			if(state)
+				return state.authResponse;
+			else if (check_if_false && !DJFB._tried_getting_state) {
+				var resp = FB.getAuthResponse();
+				DJFB.st(resp);
+				return resp;
+			}
+		},
+		update_user_info:function(f,args,scope) {
+			djp.console('update fb user data');
+			var fql='SELECT name, email, verified, profile_url, pic_square, pic_big, birthday_date, sex FROM user WHERE uid=me()', qry=FB.Data.query(fql);
+			djp.console('fql', fql);
+			qry.wait(function(results) {
+				djp.console('update fb user data', results);
+				if ( results && results.length ) {
+					DJFB.ud = results[0];
+					if ( typeof(f)=='function' ) {
+						f.call(scope, args);
+					}
+				}
+				else
+					DJFB.ud = {};
+			});
+		},
+
+		register: function(opt) {
+			var ud=DJFB.ud, f=gebi('user-signup-form'),namebits=ud.name.split(' '), lname=namebits.pop();
+			f.signup_fname.value = namebits.join(' ');
+			djp.defValInputFocus(f.signup_fname);
+			f.signup_lname.value = lname;
+			djp.defValInputFocus(f.signup_lname);
+			var bd = ud.birthday_date.split('/');
+			f.signup_month.value = parseInt(bd[0]);
+			f.signup_day.value = parseInt(bd[1]);
+			if (bd[2])
+				f.signup_year.value = parseInt(bd[2]);
+      for (var i=0; i<f.signup_sex.length; i++ ) {
+        if ( f.signup_sex[i].value == ud.sex.toUpperCase().substr(0,1) )
+          f.signup_sex[i].checked = true;
+      }
+			f.signup_email.value = ud.email;
+			f.signup_fb.value = DJFB.uid();
+			f.signup_fb_pic.value = DJFB.ud.pic_big;
+			Dom.getElementsByClassName('hide_prefilled', 'tr', f, function(el){if(el)Dom.addClass(el,'invis')});
+			Dom.addClass('signup_aux_info','invis');
+			DJFB.toggle_fb_login_button(false);
+		},
+		logout:function() {
+			FB.ensureInit(function(){
+				FB.Connect.logout();
+			});
+		},
+		submit_comment:function() {
+			var comment_text='';
+			var f=gebi('addcommfrm'),me=this;
+			me.template_bundle_id= 51635871258;
+			me.fbc_post_url = gebi('addcomm_url').innerHTML;
+			me.fbc_image_url = gebi('addcomm_img').innerHTML;
+			me.fbc_descr = gebi('addcomm_descr').innerHTML;
+			me.fbc_title = gebi('addcomm_title').innerHTML;
+			if(f){
+				var b=f['c[body]'];
+				if(b){
+					comment_text=b.value;
+				}else{
+					djp.error('unable to locate comment textarea');
+					return true;
+				}
+			}
+			else{
+				djp.error('unable to locate comment form, expected id=commentform');
+				return true;
+			}
+			if(comment_text.length===0){return true;}
+			var img = {
+				name: me.fbc_title,
+				href: me.fbc_post_url,
+				description: me.fbc_descr,
+				media:[{type:'image', src:me.fbc_image_url, href:me.fbc_post_url}]
+			};
+			FB.Connect.streamPublish(comment_text, img, null, null, "Post your comment to Facebook", function(){
+					var f=gebi('addcommfrm');
+					if ( f )
+						f.onsubmit();
+				 });
+
+			return false;
+		}
+	};
+
+
+	var DJFB = new FBConnect();
+	djp.FB = DJFB;
+})();
